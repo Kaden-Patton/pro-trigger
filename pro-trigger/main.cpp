@@ -14,55 +14,12 @@ namespace offsets {
 	constexpr ::std::ptrdiff_t m_iCrosshairId = 0x11838;
 	constexpr ::std::ptrdiff_t m_aimPunchAngle = 0x303C;
 	constexpr ::std::ptrdiff_t m_iShotsFired = 0x103E0;
-	
 }
 
 struct Vector2 {
 	float x = { };
 	float y = { };
 };
-
-
-void DoTrigger() {
-	auto oldPunch = Vector2{ };
-	const auto& localPlayer = memory.Read<std::uintptr_t>(client + offsets::dwLocalPlayer);
-	const auto& localHealth = memory.Read<std::int32_t>(localPlayer + offsets::m_iHealth);
-	const auto& shotsFired = memory.Read<std::int32_t>(localPlayer + offsets::m_iShotsFired);
-
-	if (shotsFired)
-	{
-		const auto& clientState = memory.Read<std::uintptr_t>(engine + offsets::dwClientState);
-		const auto& viewAngles = memory.Read<Vector2>(clientState + offsets::dwClientState_ViewAngles);
-
-		const auto& aimPunch = memory.Read<Vector2>(localPlayer + offsets::m_aimPunchAngle);
-
-		auto newAngles = Vector2{
-			viewAngles.x + oldPunch.x - aimPunch.x * 2.0f,
-			viewAngles.y + oldPunch.y - aimPunch.y * 2.0f
-		};
-
-		if (newAngles.x > 89.0f) {
-			newAngles.x = 89.0f;
-		}
-		if (newAngles.x < -89.0f) {
-			newAngles.x = -89.0f;
-		}
-		while (newAngles.y > 180.0f) {
-			newAngles.y -= 360.0f;
-		}
-		while (newAngles.y < -180.0f) {
-			newAngles.y += 180.0f;
-		}
-
-		memory.Write<Vector2>(clientState + offsets::dwClientState_ViewAngles, newAngles);
-		oldPunch.x = aimPunch.x * 2.0f;
-		oldPunch.y = aimPunch.y * 2.0f;
-
-	}
-	else {
-		oldPunch.x = oldPunch.y = 0.0f;
-	}
-}
 
 int main() {
 	const auto memory = Memory{ "csgo.exe" };
@@ -76,18 +33,47 @@ int main() {
 	while (true) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-
-
-
-
 		if (!GetAsyncKeyState(VK_SHIFT)) {
 			continue;
 		}
 
-		
+		auto oldPunch = Vector2{ };
+		const auto& localPlayer = memory.Read<std::uintptr_t>(client + offsets::dwLocalPlayer);
+		const auto& localHealth = memory.Read<std::int32_t>(localPlayer + offsets::m_iHealth);
+		const auto& shotsFired = memory.Read<std::int32_t>(localPlayer + offsets::m_iShotsFired);
 
+		if (shotsFired)
+		{
+			const auto& clientState = memory.Read<std::uintptr_t>(engine + offsets::dwClientState);
+			const auto& viewAngles = memory.Read<Vector2>(clientState + offsets::dwClientState_ViewAngles);
 
+			const auto& aimPunch = memory.Read<Vector2>(localPlayer + offsets::m_aimPunchAngle);
 
+			auto newAngles = Vector2{
+				viewAngles.x + oldPunch.x - aimPunch.x * 2.0f,
+				viewAngles.y + oldPunch.y - aimPunch.y * 2.0f
+			};
+
+			if (newAngles.x > 89.0f) {
+				newAngles.x = 89.0f;
+			}
+			if (newAngles.x < -89.0f) {
+				newAngles.x = -89.0f;
+			}
+			while (newAngles.y > 180.0f) {
+				newAngles.y -= 360.0f;
+			}
+			while (newAngles.y < -180.0f) {
+				newAngles.y += 180.0f;
+			}
+
+			memory.Write<Vector2>(clientState + offsets::dwClientState_ViewAngles, newAngles);
+			oldPunch.x = aimPunch.x * 2.0f;
+			oldPunch.y = aimPunch.y * 2.0f;
+		}
+		else {
+			oldPunch.x = oldPunch.y = 0.0f;
+		}
 		if (!localHealth) {
 			continue;
 		}
@@ -113,5 +99,5 @@ int main() {
 		memory.Write<std::uintptr_t>(client + offsets::dwForceAttack, 4);
 	}
 
-return 0; 
+	return 0;
 }
